@@ -1,0 +1,40 @@
+# Android Studio/IntelliJ
+.idea/
+*.iml
+
+# Kotlin build artifacts
+.kotlin/
+
+# Gradle
+.gradle/
+build/
+**/build/
+
+# Local configuration
+local.properties
+gradle.properties (optional, if it contains secrets)
+
+# Generated files
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Gradle Wrapper logs
+gradlew.bat
+gradlew
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+
+# Log files
+*.log
+
+# Keystore files (if you use them)
+*.jks
+*.keystore
+
+# Misc
+*.apk
+*.aab
+output.json
