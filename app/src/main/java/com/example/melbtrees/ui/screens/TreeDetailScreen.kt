@@ -129,8 +129,7 @@ fun StaticMapView(
         minLon, minLat, maxLon, maxLat
     )
 
-    val mapUrl = "https://render.openstreetmap.org/cgi-bin/export?" +
-            "bbox=$bbox&scale=10000&format=png"
+    val mapUrl = "https://static-maps.yandex.ru/1.x/?lang=en-US&ll=$longitude,$latitude&z=17&l=map&size=600,300&pt=$longitude,$latitude,pm2rdl"
 
     Log.d("StaticMapView", "Loading map from URL: $mapUrl")
 
@@ -145,7 +144,10 @@ fun StaticMapView(
         .build()
 
     AsyncImage(
-        model = imageRequest,
+        model = ImageRequest.Builder(LocalContext.current)
+            .data(mapUrl)
+            .crossfade(true)
+            .build(),
         contentDescription = "Map view of the tree's location",
         contentScale = ContentScale.Crop,
         modifier = modifier

@@ -1,11 +1,16 @@
-package com.example.melbtrees.data.remote // <-- Make sure this package name is correct
+package com.example.melbtrees.data.remote
 
 import com.google.gson.annotations.SerializedName
 
+// Renamed to match the new API structure
 public data class ApiResponse(
     @SerializedName("results") val results: List<TreeDto>
 )
 
+// Represents one record in the "records" array
+//public data class ApiRecord(
+//    @SerializedName("fields") val fields: TreeFields
+//)
 public data class TreeDto(
     @SerializedName("com_id") val id: String?,
     @SerializedName("common_name") val commonName: String?,
@@ -18,10 +23,10 @@ public data class TreeDto(
     @SerializedName("diameter_breast_height") val diameterAtBreastHeightCm: Int?,
     @SerializedName("precinct") val precinct: String?,
     @SerializedName("located_in") val locatedIn: String?,
-    @SerializedName("geolocation") val location: TreeLocationDto?
+    @SerializedName("geolocation") val geolocation: GeolocationDto?
 )
 
-public data class TreeLocationDto(
-    @SerializedName("lat") val latitude: Double,
-    @SerializedName("lon") val longitude: Double
+public data class GeolocationDto(
+    @SerializedName("lat") val latitude: Double?,
+    @SerializedName("lon") val longitude: Double?
 )

@@ -10,6 +10,8 @@ import com.example.melbtrees.ui.viewmodel.TreeViewModel
 import com.example.melbtrees.ui.viewmodel.UiState
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.unit.dp
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -30,9 +32,13 @@ fun MainScreen(
         }
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues)) {
-            // Address Search Bar
-            (allTreesState as? UiState.Success)?.let {
-                AddressSearchBar(onSearch = viewModel::searchByAddress)
+            Button(
+                onClick = { viewModel.findRandomTrees() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text("Find Random Trees")
             }
 
             // Tabs for switching views
@@ -40,7 +46,12 @@ fun MainScreen(
                 tabs.forEachIndexed { index, title ->
                     Tab(
                         selected = selectedTabIndex == index,
-                        onClick = { selectedTabIndex = index },
+                        onClick = {
+                            selectedTabIndex = index
+                            if (index == 1) {
+                                viewModel.loadFavorites()
+                            }
+                                  },
                         text = { Text(title) }
                     )
                 }

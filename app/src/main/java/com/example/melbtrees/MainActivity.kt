@@ -23,8 +23,6 @@ import okhttp3.logging.HttpLoggingInterceptor
 
 class MainActivity : ComponentActivity() {
 
-
-
     // Manually create all dependencies
     private val api: MelbourneTreesApi by lazy {
 
@@ -51,7 +49,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private val treeRepository: TreeRepository by lazy {
-        TreeRepository(api, treeDataSource)
+        TreeRepository(api, treeDataSource) // <-- Pass both dependencies
     }
 
     private val treeViewModel: TreeViewModel by viewModels {
@@ -62,12 +60,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             MelbtreesTheme {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    AppNavHost(viewModel = treeViewModel)
-                }
+                AppNavHost(viewModel = treeViewModel)
             }
         }
     }

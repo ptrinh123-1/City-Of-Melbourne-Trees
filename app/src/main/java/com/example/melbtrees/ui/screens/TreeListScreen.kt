@@ -27,11 +27,6 @@ fun TreeListScreen(
         }
     ) { paddingValues ->
         Column(modifier = Modifier.padding(paddingValues).fillMaxSize()) {
-            AddressSearchBar(
-                onSearch = { address ->
-                    viewModel.searchByAddress(address)
-                }
-            )
 
             when (val state = uiState) {
                 is UiState.Loading -> {

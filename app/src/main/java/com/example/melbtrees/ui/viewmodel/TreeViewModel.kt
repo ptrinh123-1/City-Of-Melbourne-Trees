@@ -14,14 +14,32 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.IOException
 import android.util.Log
-import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
+import java.util.Locale
+
+private val melbourneLocations = listOf(
+    // Fitzroy Gardens
+    -37.8136 to 144.9799,
+    // Royal Botanic Gardens
+    -37.8304 to 144.9796,
+    // Flinders Street Station
+    -37.8183 to 144.9671,
+    // Queen Victoria Market
+    -37.8077 to 144.9568
+)
+
+private const val MELB_MIN_LAT = -37.89
+private const val MELB_MAX_LAT = -37.77
+private const val MELB_MIN_LON = 144.86
+private const val MELB_MAX_LON = 145.03
 
 class TreeViewModel(
     private val repository: TreeRepository,
     private val context: Context
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow<UiState>(UiState.Loading)
+    private val _uiState = MutableStateFlow<UiState>(UiState.Success(emptyList()))
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
 
     private val _favoritesState = MutableStateFlow<List<Tree>>(emptyList())
@@ -30,82 +48,65 @@ class TreeViewModel(
     private val _selectedTree = MutableStateFlow<Tree?>(null)
     val selectedTree: StateFlow<Tree?> = _selectedTree.asStateFlow()
 
-    private var allTrees: List<Tree> = emptyList()
-
     init {
-        loadTrees()
+        // Load an initial random set of trees when the app starts
+        findRandomTrees()
+        loadFavorites()
     }
 
-    private fun loadTrees() {
-        viewModelScope.launch {
-            _uiState.value = UiState.Loading
-            try {
-                allTrees = repository.getTrees()
-                Log.d("TreeViewModel", "Repository returned ${allTrees.size} trees.")
-                _uiState.value = UiState.Success(allTrees)
-                updateFavoritesList()
-            } catch (e: Exception) {
-                Log.e("TreeViewModel", "Error loading trees", e)
-                _uiState.value = UiState.Error("Failed to load trees. Check network connection.")
-            }
-        }
+    fun findRandomTrees() {
+        val randomLat = (MELB_MIN_LAT..MELB_MAX_LAT).random()
+        val randomLon = (MELB_MIN_LON..MELB_MAX_LON).random()
+
+        searchByCoordinates(randomLat, randomLon)
     }
 
-    fun searchByAddress(address: String) {
-        if (address.isBlank()) {
-            _uiState.value = UiState.Success(allTrees)
-            return
-        }
-
+    private fun searchByCoordinates(latitude: Double, longitude: Double) {
         _uiState.value = UiState.Loading
         viewModelScope.launch {
             try {
-                val geocoder = Geocoder(context)
-                val addresses = geocoder.getFromLocationName(address, 1)
-
-                if (addresses?.isNotEmpty() == true) {
-                    val location = addresses[0]
-                    val sortedTrees = allTrees.sortedBy { tree ->
-                        calculateDistance(
-                            location.latitude,
-                            location.longitude,
-                            tree.latitude ?: 0.0,
-                            tree.longitude ?: 0.0
-                        )
-                    }
-                    _uiState.value = UiState.Success(sortedTrees)
+                val nearbyTrees = repository.getTreesNearLocation(latitude, longitude)
+                _uiState.value = UiState.Success(nearbyTrees)
+                if (nearbyTrees.isEmpty()) {
+                    // If we landed in an empty spot, just try again with a new random location.
+                    findRandomTrees()
                 } else {
-                    _uiState.value = UiState.Error("Address not found.")
+                    // Otherwise, show the results.
+                    _uiState.value = UiState.Success(nearbyTrees)
                 }
-            } catch (e: IOException) {
-                _uiState.value = UiState.Error("Network error or invalid address.")
+            } catch (e: Exception) {
+                _uiState.value = UiState.Error("Failed to load trees.")
             }
+        }
+    }
+
+    fun loadFavorites() {
+        viewModelScope.launch { // <-- Run this in a coroutine
+            Log.d("ViewModel", "Loading favorite trees...")
+            _favoritesState.value = repository.loadFavoriteTrees()
+            Log.d("ViewModel", "Found ${_favoritesState.value.size} favorite trees.")
         }
     }
 
     fun findTreeById(id: String?) {
-        _selectedTree.value = allTrees.find { it.id == id }
+        // Check both lists to find the selected tree
+        val allTrees = (_uiState.value as? UiState.Success)?.trees ?: emptyList()
+        val favoriteTrees = _favoritesState.value
+        _selectedTree.value = (allTrees + favoriteTrees).find { it.id == id }
     }
 
     fun onFavoriteClicked(tree: Tree) {
-        // Get the new, updated list from the repository
-        val updatedTrees = repository.toggleFavoriteStatus(tree.id)
-        allTrees = updatedTrees
-
-        // Find the newly updated tree from that list
-        val updatedSelectedTree = updatedTrees.find { it.id == tree.id }
-
-        // Update all the states with the new information
-        _uiState.value = UiState.Success(updatedTrees)
-        _selectedTree.value = updatedSelectedTree
-        updateFavoritesList()
+        (_uiState.value as? UiState.Success)?.let { currentState ->
+            val updatedList = repository.toggleFavoriteStatus(tree, currentState.trees)
+            _uiState.value = UiState.Success(updatedList)
+            _selectedTree.update { it?.copy(isFavourite = !it.isFavourite) }
+            loadFavorites() // <-- Refresh the favorites list after a change
+        }
     }
-
-    private fun updateFavoritesList() {
-        _favoritesState.value = allTrees.filter { it.isFavourite }
-    }
-
 }
+
+private fun ClosedRange<Double>.random() =
+    start + java.util.Random().nextDouble() * (endInclusive - start)
 
 class TreeViewModelFactory(
     private val repository: TreeRepository,
